@@ -66,9 +66,9 @@ const LoginWall = ({ onOpenAuth }) => (
       <div className="w-16 h-16 rounded-2xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center mx-auto">
         <Brain className="w-8 h-8 text-blue-400" />
       </div>
-      <h1 className="font-display text-2xl font-black text-white tracking-tight">Coinflip Predictor</h1>
+      <h1 className="font-display text-2xl font-black text-white tracking-tight">Probability Simulation Engine</h1>
       <p className="text-sm text-zinc-400 max-w-xs mx-auto leading-relaxed">
-        Sign in or create an account to access the AI prediction engine.
+        Sign in or create an account to access the statistical modeling dashboard.
       </p>
     </div>
 
