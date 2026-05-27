@@ -37,6 +37,11 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
   const [saving, setSaving] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  
+  // New state for transactions tab
+  const [activeTab, setActiveTab] = useState('users'); // 'users' | 'transactions'
+  const [transactions, setTransactions] = useState([]);
+  const [processingTxId, setProcessingTxId] = useState(null);
 
   const fetchProfiles = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
@@ -54,7 +59,36 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
     }
   }, []);
 
-  useEffect(() => { fetchProfiles(); }, [fetchProfiles]);
+  const fetchTransactions = useCallback(async (silent = false) => {
+    if (!silent) setLoading(true);
+    else setRefreshing(true);
+    setError('');
+    try {
+      const { data, error: txErr } = await supabase
+        .from('momo_transactions')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false });
+        
+      if (txErr) throw txErr;
+      setTransactions(data || []);
+    } catch (err) {
+      setError(err.message || 'Failed to load transactions.');
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => { 
+    if (activeTab === 'users') fetchProfiles(); 
+    else fetchTransactions();
+  }, [activeTab, fetchProfiles, fetchTransactions]);
+
+  const handleRefresh = () => {
+    if (activeTab === 'users') fetchProfiles(true);
+    else fetchTransactions(true);
+  };
 
   const totalTokens = profiles.reduce((sum, p) => sum + (p.credits || 0), 0);
 
@@ -96,6 +130,33 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
     }
   };
 
+  const handleTransactionAction = async (txId, action) => {
+    setProcessingTxId(txId);
+    try {
+      if (action === 'approve') {
+        const { error: rpcErr } = await supabase.rpc('admin_approve_momo', { target_tx_id: txId });
+        if (rpcErr) throw rpcErr;
+      } else {
+        const { error: updateErr } = await supabase
+          .from('momo_transactions')
+          .update({ status: 'rejected' })
+          .eq('id', txId);
+        if (updateErr) throw updateErr;
+      }
+      
+      // Remove from list
+      setTransactions(prev => prev.filter(t => t.id !== txId));
+      
+      // If approved, refresh profiles so the new tokens show up in stats
+      if (action === 'approve') fetchProfiles(true);
+      
+    } catch (err) {
+      alert(`Failed to ${action} transaction: ${err.message}`);
+    } finally {
+      setProcessingTxId(null);
+    }
+  };
+
   const formatDate = (ts) => {
     if (!ts) return '—';
     return new Date(ts).toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' });
@@ -123,12 +184,39 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
         </div>
         <button
           type="button"
-          onClick={() => fetchProfiles(true)}
+          onClick={handleRefresh}
           disabled={refreshing}
           className="touch-target w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-zinc-400 hover:text-white transition-colors disabled:opacity-50"
           aria-label="Refresh"
         >
           <RefreshCw size={16} className={refreshing ? 'animate-spin' : ''} />
+        </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="shrink-0 px-4 pt-3 flex gap-2">
+        <button
+          onClick={() => setActiveTab('users')}
+          className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-xl border transition-colors ${
+            activeTab === 'users' 
+              ? 'bg-blue-500/20 text-blue-400 border-blue-500/30' 
+              : 'bg-white/5 text-zinc-500 border-transparent hover:text-zinc-300'
+          }`}
+        >
+          Users
+        </button>
+        <button
+          onClick={() => setActiveTab('transactions')}
+          className={`flex-1 py-2 text-[11px] font-bold uppercase tracking-wider rounded-xl border transition-colors relative ${
+            activeTab === 'transactions' 
+              ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' 
+              : 'bg-white/5 text-zinc-500 border-transparent hover:text-zinc-300'
+          }`}
+        >
+          Transactions
+          {transactions.length > 0 && activeTab === 'users' && (
+            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#08080a]" />
+          )}
         </button>
       </div>
 
@@ -148,20 +236,22 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
           </div>
         )}
 
-        {/* Users list */}
+        {/* Lists */}
         {loading ? (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-zinc-600">
             <Loader2 size={24} className="animate-spin" />
-            <p className="text-sm">Loading users…</p>
+            <p className="text-sm">Loading…</p>
           </div>
-        ) : profiles.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
-            <Users size={28} />
-            <p className="text-sm">No users yet</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider px-1">All Users</p>
+        ) : activeTab === 'users' ? (
+          profiles.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
+              <Users size={28} />
+              <p className="text-sm">No users yet</p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider px-1">All Users</p>
+
             {profiles.map((profile) => {
               const phone = profile.email ? emailToPhone(profile.email) : profile.id.slice(0, 8) + '…';
               const isEditing = editingId === profile.id;
@@ -278,6 +368,63 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
               );
             })}
           </div>
+        ) : (
+          transactions.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
+              <CheckCircle2 size={28} className="text-zinc-700" />
+              <p className="text-sm">No pending transactions</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider px-1">Pending Approval</p>
+              {transactions.map((tx) => {
+                const isProcessing = processingTxId === tx.id;
+                return (
+                  <motion.div
+                    key={tx.id}
+                    layout
+                    className="rounded-2xl border bg-amber-500/5 border-amber-500/20 p-3.5 space-y-3"
+                  >
+                    <div className="flex justify-between items-start gap-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-bold text-white font-display">{tx.momo_phone}</span>
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-white/10 text-zinc-400 font-mono">
+                            {tx.tx_id}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-zinc-500 mt-1">
+                          {formatDate(tx.created_at)} • User: {tx.user_id.slice(0, 8)}…
+                        </p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold text-yellow-400">₵{tx.amount_ghs}</p>
+                        <p className="text-[10px] font-bold text-zinc-400">+{tx.tokens} tokens</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2 pt-1">
+                      <button
+                        onClick={() => handleTransactionAction(tx.id, 'reject')}
+                        disabled={isProcessing}
+                        className="flex-1 py-2 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-[11px] font-bold uppercase tracking-wider hover:bg-red-500/20 transition-colors disabled:opacity-50"
+                      >
+                        Reject
+                      </button>
+                      <button
+                        onClick={() => handleTransactionAction(tx.id, 'approve')}
+                        disabled={isProcessing}
+                        className="flex-1 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] font-bold uppercase tracking-wider hover:bg-emerald-500/20 transition-colors disabled:opacity-50 flex justify-center items-center gap-2"
+                      >
+                        {isProcessing && <Loader2 size={12} className="animate-spin" />}
+                        Approve
+                      </button>
+                    </div>
+                  </motion.div>
+                );
+              })}
+            </div>
+          )
         )}
       </div>
     </motion.div>

@@ -77,7 +77,7 @@ const PackageCard = ({ pkg, onSelect, disabled }) => (
 );
 
 // ── Main modal ────────────────────────────────────────────────
-const CheckoutModal = ({ isOpen, onClose, onPurchaseSuccess }) => {
+const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
   const [step, setStep] = useState('packages'); // 'packages' | 'pay' | 'done'
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [momoPhone, setMomoPhone] = useState('');
@@ -145,17 +145,17 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSuccess }) => {
           .maybeSingle();
 
         if (existing) {
-          setStatus({ type: 'error', message: 'This transaction ID has already been used.' });
+          setStatus({ type: 'error', message: 'This transaction ID has already been submitted.' });
           setSubmitting(false);
           return;
         }
       }
 
-      // Credit tokens
-      const result = await onPurchaseSuccess(selectedPkg.amount, txRef);
+      // Record transaction
+      const result = await onPurchaseSubmit(selectedPkg.amount, txRef);
 
       if (result && result.success) {
-        // Save to Supabase momo_transactions
+        // Save to Supabase momo_transactions as pending
         if (supabase) {
           await supabase.from('momo_transactions').insert({
             tx_id: txRef.toLowerCase(),
@@ -163,6 +163,8 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSuccess }) => {
             amount_ghs: selectedPkg.price,
             tokens: selectedPkg.amount,
             package_label: selectedPkg.label,
+            user_id: user?.id,
+            status: 'pending'
           }).select();
         }
 
@@ -420,15 +422,16 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSuccess }) => {
                   initial={{ scale: 0.5, opacity: 0 }}
                   animate={{ scale: 1, opacity: 1 }}
                   transition={{ type: 'spring', stiffness: 300, damping: 18 }}
-                  className="w-20 h-20 rounded-full bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center"
+                  className="w-20 h-20 rounded-full bg-blue-500/15 border border-blue-500/25 flex items-center justify-center"
                 >
-                  <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+                  <Loader2 className="w-10 h-10 text-blue-400 animate-spin" />
                 </motion.div>
 
                 <div className="space-y-1.5">
-                  <h3 className="font-display text-2xl font-black text-white">Tokens Added!</h3>
+                  <h3 className="font-display text-2xl font-black text-white">Payment Pending</h3>
                   <p className="text-sm text-zinc-400">
-                    <span className="text-yellow-400 font-bold">{selectedPkg.amount} tokens</span> have been credited to your account.
+                    Your request for <span className="text-yellow-400 font-bold">{selectedPkg.amount} tokens</span> has been submitted.
+                    An admin will verify the transaction and credit your account shortly.
                   </p>
                 </div>
 
@@ -437,7 +440,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSuccess }) => {
                   onClick={handleClose}
                   className="w-full max-w-xs min-h-[52px] flex items-center justify-center gap-2 rounded-2xl bg-white/8 border border-white/12 text-white font-bold text-sm active:scale-[0.98] transition-all"
                 >
-                  Start Predicting →
+                  Back to Dashboard
                 </button>
               </div>
             )}

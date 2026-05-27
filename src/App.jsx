@@ -198,18 +198,19 @@ const App = () => {
   }, []);
 
   // ── Paystack purchase success ─────────────────────────────────
-  const handlePurchaseSuccess = useCallback(async (amount, reference) => {
+  const handlePurchaseSubmit = useCallback(async (amount, reference) => {
     const processed = JSON.parse(localStorage.getItem('predictor_momo_transactions') || '[]');
     if (processed.includes(reference)) {
-      return { success: false, message: 'This transaction ID has already been used.' };
+      return { success: false, message: 'This transaction ID has already been used locally.' };
     }
-    const newCredits = creditsRef.current + amount;
-    setCredits(newCredits);
+    // We do NOT add credits here anymore. The admin must approve.
     localStorage.setItem('predictor_momo_transactions', JSON.stringify([...processed, reference]));
-    await updateCloudCredits(newCredits);
-    addToast(`🎉 ${amount} tokens added to your account!`, 'success', 4000);
+    
+    // Check if the user is an admin. If so, they might expect instant credits, but we'll still enforce the flow.
+    // For normal users, just show a pending toast.
+    addToast(`⏳ Transaction submitted! An admin will review and credit your ${amount} tokens shortly.`, 'info', 6000);
     return { success: true, amount };
-  }, [updateCloudCredits, addToast]);
+  }, [addToast]);
 
   // ── Predict handlers ──────────────────────────────────────────
   const handleStartPredict = useCallback(async () => {
@@ -406,7 +407,8 @@ const App = () => {
       <CheckoutModal
         isOpen={showCheckout}
         onClose={() => setShowCheckout(false)}
-        onPurchaseSuccess={handlePurchaseSuccess}
+        onPurchaseSubmit={handlePurchaseSubmit}
+        user={user}
       />
 
       <AnimatePresence>
