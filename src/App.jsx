@@ -7,6 +7,7 @@ import PredictorPanel from './components/PredictorPanel';
 import CheckoutModal from './components/CheckoutModal';
 import AuthModal, { emailToPhone } from './components/AuthModal';
 import AdminDashboard from './components/AdminDashboard';
+import UserProfileModal from './components/UserProfileModal';
 import { playFlipSound, playWinSound, playLossSound } from './utils/sounds';
 import { supabase, isSupabaseConfigured } from './config/supabase';
 
@@ -97,6 +98,7 @@ const App = () => {
   const [showAuth, setShowAuth] = useState(false);
   const [showCheckout, setShowCheckout] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
 
   // Credits
   const [credits, setCredits] = useState(0);
@@ -350,14 +352,13 @@ const App = () => {
             {/* Account / sign out button */}
             <button
               type="button"
-              id="sign-out-btn"
-              onClick={handleSignOut}
-              title={`${emailToPhone(user.email)} — tap to sign out`}
-              className="touch-target w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition-colors group"
-              aria-label="Sign out"
+              id="profile-btn"
+              onClick={() => setShowProfile(true)}
+              title={`${emailToPhone(user.email)} — tap for profile`}
+              className="touch-target w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-emerald-500/20 transition-colors"
+              aria-label="Profile"
             >
-              <LogOut size={14} className="hidden group-hover:block sm:w-5 sm:h-5" />
-              <User size={16} className="block group-hover:hidden sm:w-5 sm:h-5" />
+              <User size={16} className="sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>
@@ -418,6 +419,13 @@ const App = () => {
             currentUserId={user.id}
           />
         )}
+        <UserProfileModal
+          isOpen={showProfile}
+          onClose={() => setShowProfile(false)}
+          user={user}
+          credits={credits}
+          onSignOut={handleSignOut}
+        />
       </AnimatePresence>
     </div>
   );
