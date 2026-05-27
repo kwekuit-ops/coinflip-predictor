@@ -9,7 +9,7 @@ import { CREDIT_PACKAGES } from '../config/packages';
 import { supabase } from '../config/supabase';
 
 const MOMO_NUMBER = '0542217528';
-const MOMO_NAME = 'Coinflip Predictor';
+const MOMO_NAME = 'Evans';
 const MOMO_STORAGE_KEY = 'predictor_momo_transactions';
 
 // ── Copy to clipboard helper ──────────────────────────────────
