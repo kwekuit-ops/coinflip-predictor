@@ -1,12 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, LogOut, Clock, CheckCircle2, XCircle, Coins, Loader2, ChevronLeft } from 'lucide-react';
+import { X, User, LogOut, Clock, CheckCircle2, XCircle, Coins, Loader2, ChevronLeft, KeyRound } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { emailToPhone } from './AuthModal';
 
 const UserProfileModal = ({ isOpen, onClose, user, credits, onSignOut }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Password change state
+  const [showPasswordChange, setShowPasswordChange] = useState(false);
+  const [newPassword, setNewPassword] = useState('');
+  const [passwordStatus, setPasswordStatus] = useState({ type: '', message: '' });
+  const [updatingPassword, setUpdatingPassword] = useState(false);
 
   useEffect(() => {
     if (isOpen && user) {
@@ -30,6 +36,26 @@ const UserProfileModal = ({ isOpen, onClose, user, credits, onSignOut }) => {
       console.error('Failed to load transactions:', err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async () => {
+    if (newPassword.length < 6) {
+      setPasswordStatus({ type: 'error', message: 'Password must be at least 6 characters.' });
+      return;
+    }
+    setUpdatingPassword(true);
+    setPasswordStatus({ type: '', message: '' });
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) throw error;
+      setPasswordStatus({ type: 'success', message: 'Password updated successfully!' });
+      setNewPassword('');
+      setTimeout(() => setShowPasswordChange(false), 2000);
+    } catch (err) {
+      setPasswordStatus({ type: 'error', message: err.message });
+    } finally {
+      setUpdatingPassword(false);
     }
   };
 
@@ -136,6 +162,57 @@ const UserProfileModal = ({ isOpen, onClose, user, credits, onSignOut }) => {
                     ))}
                   </div>
                 )}
+              </div>
+
+              {/* Security / Change Password */}
+              <div className="space-y-3">
+                <h4 className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">Security</h4>
+                <div className="bg-white/[0.03] border border-white/5 rounded-xl overflow-hidden">
+                  <button
+                    onClick={() => setShowPasswordChange(!showPasswordChange)}
+                    className="w-full flex items-center justify-between p-4 hover:bg-white/5 transition-colors"
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-zinc-800 flex items-center justify-center">
+                        <KeyRound className="w-4 h-4 text-zinc-400" />
+                      </div>
+                      <span className="text-sm font-semibold text-zinc-300">Change Password</span>
+                    </div>
+                  </button>
+                  
+                  <AnimatePresence>
+                    {showPasswordChange && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="px-4 pb-4 overflow-hidden"
+                      >
+                        <div className="pt-2 space-y-3">
+                          <input
+                            type="password"
+                            placeholder="New password (min 6 chars)"
+                            value={newPassword}
+                            onChange={(e) => setNewPassword(e.target.value)}
+                            className="w-full bg-black/40 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
+                          />
+                          {passwordStatus.message && (
+                            <p className={`text-[11px] ${passwordStatus.type === 'error' ? 'text-red-400' : 'text-emerald-400'}`}>
+                              {passwordStatus.message}
+                            </p>
+                          )}
+                          <button
+                            onClick={handleUpdatePassword}
+                            disabled={updatingPassword}
+                            className="w-full py-2.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2"
+                          >
+                            {updatingPassword ? <Loader2 size={14} className="animate-spin" /> : 'Save New Password'}
+                          </button>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
               </div>
             </div>
 
