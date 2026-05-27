@@ -120,8 +120,8 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
       setStatus({ type: 'error', message: 'Enter a valid MoMo phone number (10 digits).' });
       return;
     }
-    if (!txRef || txRef.length < 3) {
-      setStatus({ type: 'error', message: 'Enter the transaction ID from your MoMo SMS.' });
+    if (!txRef || !/^\d+$/.test(txRef)) {
+      setStatus({ type: 'error', message: 'Transaction ID must be numbers only.' });
       return;
     }
 
@@ -355,13 +355,13 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                           <Hash size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" />
                           <input
                             type="text"
+                            inputMode="numeric"
                             value={txId}
-                            onChange={(e) => setTxId(e.target.value)}
-                            placeholder="e.g. A123456789"
-                            className={`${inputClass} pl-9 uppercase`}
+                            onChange={(e) => setTxId(e.target.value.replace(/\D/g, ''))}
+                            placeholder="e.g. 2145678901"
+                            className={`${inputClass} pl-9`}
                             disabled={submitting}
-                            maxLength={30}
-                            autoCapitalize="characters"
+                            maxLength={20}
                           />
                         </div>
                         <p className="text-[10px] text-zinc-600 mt-1.5">
