@@ -389,7 +389,7 @@ const App = () => {
                 <Clock className="w-4 h-4 text-blue-400" />
               </div>
               <div className="min-w-0">
-                <p className="text-[11px] text-zinc-500 font-medium">Next lucky window</p>
+                <p className="text-[11px] text-zinc-500 font-medium">Time to play</p>
                 <p className="text-sm font-bold text-white">{signalTime}</p>
               </div>
             </div>
