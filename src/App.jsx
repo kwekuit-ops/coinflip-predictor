@@ -289,32 +289,32 @@ const App = () => {
       <header className="shrink-0 z-50 border-b border-white/5 bg-black/30 backdrop-blur-md safe-top">
         <div className="w-full max-w-lg mx-auto px-3 sm:px-4 py-2.5 sm:py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1">
-            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center shrink-0">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 border border-blue-500/20 flex items-center justify-center shrink-0">
               <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
             </div>
             <div className="min-w-0">
-              <h1 className="font-display text-[15px] sm:text-lg font-bold tracking-tight text-white leading-tight">
+              <h1 className="font-display text-[13px] sm:text-lg font-bold tracking-tight text-white leading-tight truncate">
                 <span className="sm:hidden">Predictor</span>
                 <span className="hidden sm:inline">Coinflip Predictor</span>
               </h1>
-              <p className="text-[10px] text-zinc-500 font-medium hidden sm:block">Neural signal engine</p>
+              <p className="text-[9px] sm:text-[10px] text-zinc-500 font-medium hidden sm:block truncate">Neural signal engine</p>
             </div>
           </div>
 
           <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
             {/* Credits pill */}
-            <div className="flex items-center gap-1 pl-2 pr-1 py-1 rounded-full bg-white/5 border border-white/8">
-              <span className="text-sm font-bold tabular-nums min-w-[1ch]">{credits}</span>
-              <span className="text-[9px] sm:text-[10px] font-semibold text-blue-400 uppercase">tk</span>
+            <div className="flex items-center gap-0.5 sm:gap-1 pl-2.5 pr-1 py-1 rounded-full bg-white/5 border border-white/8 shrink-0">
+              <span className="text-[13px] sm:text-sm font-bold tabular-nums min-w-[1ch]">{credits}</span>
+              <span className="text-[9px] font-semibold text-blue-400 uppercase mr-0.5">tk</span>
               <button
                 type="button"
                 id="get-tokens-btn"
                 onClick={() => setShowCheckout(true)}
-                className="touch-target w-9 h-9 sm:w-8 sm:h-8 rounded-full bg-blue-500/20 active:bg-blue-500/40 border border-blue-500/30 flex items-center justify-center transition-colors"
+                className="touch-target w-7 h-7 sm:w-8 sm:h-8 shrink-0 rounded-full bg-blue-500/20 active:bg-blue-500/40 border border-blue-500/30 flex items-center justify-center transition-colors"
                 title="Get tokens"
                 aria-label="Get tokens"
               >
-                <Plus size={16} className="text-blue-400" />
+                <Plus size={14} className="text-blue-400" />
               </button>
             </div>
 
@@ -323,14 +323,14 @@ const App = () => {
               type="button"
               id="sound-toggle-btn"
               onClick={() => setSoundEnabled((s) => !s)}
-              className={`touch-target w-11 h-11 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors ${
+              className={`touch-target w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl border flex items-center justify-center transition-colors ${
                 soundEnabled
                   ? 'bg-blue-500/15 border-blue-500/25 text-blue-400'
                   : 'bg-white/5 border-white/8 text-zinc-500'
               }`}
               aria-label={soundEnabled ? 'Mute sound' : 'Enable sound'}
             >
-              {soundEnabled ? <Volume2 size={20} /> : <VolumeX size={20} />}
+              {soundEnabled ? <Volume2 size={16} className="sm:w-5 sm:h-5" /> : <VolumeX size={16} className="sm:w-5 sm:h-5" />}
             </button>
 
             {/* Admin dashboard button */}
@@ -340,10 +340,10 @@ const App = () => {
                 id="admin-btn"
                 onClick={() => setShowAdmin(true)}
                 title="Admin dashboard"
-                className="touch-target w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/20 transition-colors"
+                className="touch-target w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400 hover:bg-purple-500/20 transition-colors"
                 aria-label="Admin dashboard"
               >
-                <LayoutDashboard size={16} />
+                <LayoutDashboard size={16} className="sm:w-5 sm:h-5" />
               </button>
             )}
 
@@ -353,11 +353,11 @@ const App = () => {
               id="sign-out-btn"
               onClick={handleSignOut}
               title={`${emailToPhone(user.email)} — tap to sign out`}
-              className="touch-target w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition-colors group"
+              className="touch-target w-8 h-8 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400 hover:bg-red-500/10 hover:border-red-500/20 hover:text-red-400 transition-colors group"
               aria-label="Sign out"
             >
-              <LogOut size={16} className="hidden group-hover:block" />
-              <User size={16} className="block group-hover:hidden" />
+              <LogOut size={14} className="hidden group-hover:block sm:w-5 sm:h-5" />
+              <User size={16} className="block group-hover:hidden sm:w-5 sm:h-5" />
             </button>
           </div>
         </div>

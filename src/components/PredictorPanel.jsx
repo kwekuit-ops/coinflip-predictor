@@ -149,13 +149,13 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
             type="button"
             disabled={credits < 1}
             onClick={handlePredict}
-            className={`w-full min-h-[48px] font-display font-bold py-3.5 sm:py-3 rounded-xl text-[15px] sm:text-sm tracking-wide transition-all active:scale-[0.98] ${
+            className={`w-full min-h-[48px] font-display font-bold py-3.5 sm:py-3 rounded-xl text-[14px] sm:text-sm tracking-wide transition-all active:scale-[0.98] ${
               credits < 1
                 ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white border border-blue-400/30 shadow-[0_8px_24px_var(--accent-glow)]'
             }`}
           >
-            {credits < 1 ? 'Need tokens — tap + to get' : 'Predict next round'}
+            {credits < 1 ? 'Need tokens (Tap +)' : 'Predict next round'}
           </button>
         ) : (
           <div className="flex justify-center items-center gap-2 min-h-[48px] py-3 rounded-xl bg-white/[0.03] border border-white/5">
