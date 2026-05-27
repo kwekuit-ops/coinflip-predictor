@@ -118,7 +118,8 @@ const App = () => {
   // ── Signal time ──────────────────────────────────────────────
   useEffect(() => {
     const now = new Date();
-    now.setMinutes(now.getMinutes() + 3);
+    const randomMinutes = Math.floor(Math.random() * 4) + 2; // 2 to 5 minutes
+    now.setMinutes(now.getMinutes() + randomMinutes);
     setSignalTime(now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
   }, []);
 
@@ -240,7 +241,8 @@ const App = () => {
         colors: ['#f7d358', '#60a5fa'],
       });
       const nextTime = new Date();
-      nextTime.setMinutes(nextTime.getMinutes() + 3);
+      const randomMinutes = Math.floor(Math.random() * 4) + 2; // 2 to 5 minutes
+      nextTime.setMinutes(nextTime.getMinutes() + randomMinutes);
       setSignalTime(nextTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
     }, 3000);
   }, [isSpinning, playSoundEffect]);
