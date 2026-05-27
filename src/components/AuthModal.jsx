@@ -88,7 +88,9 @@ const AuthModal = ({ isOpen, onClose, onAuthSuccess }) => {
       }
     } catch (err) {
       const msg = (err.message || '').toLowerCase();
-      if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
+      if (msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('fetch')) {
+        setError('Connection error — check your internet or try again in a moment.');
+      } else if (msg.includes('invalid login') || msg.includes('invalid credentials')) {
         setError('Incorrect phone number or password.');
       } else if (msg.includes('already registered') || msg.includes('already exists')) {
         setError('This phone number is already registered. Try signing in.');

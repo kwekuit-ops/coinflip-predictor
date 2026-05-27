@@ -199,13 +199,13 @@ const App = () => {
 
   // ── Paystack purchase success ─────────────────────────────────
   const handlePurchaseSuccess = useCallback(async (amount, reference) => {
-    const processed = JSON.parse(localStorage.getItem('paystack_payments') || '[]');
+    const processed = JSON.parse(localStorage.getItem('predictor_momo_transactions') || '[]');
     if (processed.includes(reference)) {
-      return { success: false, message: 'This payment was already applied.' };
+      return { success: false, message: 'This transaction ID has already been used.' };
     }
     const newCredits = creditsRef.current + amount;
     setCredits(newCredits);
-    localStorage.setItem('paystack_payments', JSON.stringify([...processed, reference]));
+    localStorage.setItem('predictor_momo_transactions', JSON.stringify([...processed, reference]));
     await updateCloudCredits(newCredits);
     addToast(`🎉 ${amount} tokens added to your account!`, 'success', 4000);
     return { success: true, amount };
