@@ -3,11 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Brain, Sparkles } from 'lucide-react';
 import { playScanSound } from '../utils/sounds';
 
+const platforms = ['1win.com', 'SportyBet', 'Betwinner'];
+
 const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
   const [status, setStatus] = useState('Idle');
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
   const [isPredicting, setIsPredicting] = useState(false);
+  const [platform, setPlatform] = useState(platforms[0]);
 
   const handlePredict = async () => {
     if (isPredicting || credits < 1) return;
@@ -85,6 +88,31 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
             </motion.div>
           )}
         </AnimatePresence>
+      </div>
+
+      {/* Platform Selector */}
+      <div className="mb-3 sm:mb-4">
+        <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5 relative">
+          {platforms.map((p) => (
+            <button
+              key={p}
+              onClick={() => setPlatform(p)}
+              disabled={isPredicting}
+              className={`flex-1 relative z-10 text-[10px] sm:text-[11px] font-bold py-2 rounded-lg transition-colors ${
+                platform === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+              } ${isPredicting ? 'cursor-not-allowed opacity-50' : ''}`}
+            >
+              {platform === p && (
+                <motion.div
+                  layoutId="active-platform"
+                  className="absolute inset-0 bg-blue-500/20 rounded-lg -z-10 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+                  transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                />
+              )}
+              {p}
+            </button>
+          ))}
+        </div>
       </div>
 
       <AnimatePresence mode="wait">
