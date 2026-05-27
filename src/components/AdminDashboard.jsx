@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Users, Zap, RefreshCw, Shield, ShieldOff,
   Edit3, Check, ChevronLeft, AlertCircle, Loader2,
-  TrendingUp, Coins
+  TrendingUp, Coins, CheckCircle2
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { emailToPhone } from './AuthModal';
@@ -237,12 +237,14 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
         )}
 
         {/* Lists */}
-        {loading ? (
+        {loading && (
           <div className="flex flex-col items-center justify-center py-16 gap-3 text-zinc-600">
             <Loader2 size={24} className="animate-spin" />
             <p className="text-sm">Loading…</p>
           </div>
-        ) : activeTab === 'users' ? (
+        )}
+        
+        {!loading && activeTab === 'users' && (
           profiles.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
               <Users size={28} />
@@ -367,8 +369,11 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
                 </motion.div>
               );
             })}
-          </div>
-        ) : (
+            </div>
+          )
+        )}
+        
+        {!loading && activeTab === 'transactions' && (
           transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
               <CheckCircle2 size={28} className="text-zinc-700" />
