@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Users, Zap, RefreshCw, Shield, ShieldOff,
   Edit3, Check, ChevronLeft, AlertCircle, Loader2,
-  TrendingUp, Coins, CheckCircle2
+  TrendingUp, Coins, CheckCircle2, Search
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { emailToPhone } from './AuthModal';
@@ -40,6 +40,7 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
   
   // New state for transactions tab
   const [activeTab, setActiveTab] = useState('users'); // 'users' | 'transactions'
+  const [searchQuery, setSearchQuery] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [processingTxId, setProcessingTxId] = useState(null);
 
@@ -162,6 +163,13 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
     return new Date(ts).toLocaleDateString([], { day: 'numeric', month: 'short', year: '2-digit' });
   };
 
+  const filteredProfiles = profiles.filter(p => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase().trim();
+    const phone = p.email ? emailToPhone(p.email).toLowerCase() : p.id.toLowerCase();
+    return phone.includes(q);
+  });
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -245,16 +253,44 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
         )}
         
         {!loading && activeTab === 'users' && (
-          profiles.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
-              <Users size={28} />
-              <p className="text-sm">No users yet</p>
+          <div className="space-y-4">
+            {/* Search Bar */}
+            <div className="relative">
+              <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500" />
+              <input
+                type="text"
+                placeholder="Search by phone number..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-white/5 border border-white/10 rounded-xl py-3 pl-10 pr-4 text-sm text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50 focus:bg-white/10 transition-colors"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white"
+                >
+                  <X size={14} />
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="space-y-2">
-              <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider px-1">All Users</p>
 
-            {profiles.map((profile) => {
+            {profiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-zinc-600">
+                <Users size={28} />
+                <p className="text-sm">No users yet</p>
+              </div>
+            ) : filteredProfiles.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 gap-2 text-zinc-600">
+                <Search size={28} />
+                <p className="text-sm">No users found</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider px-1">
+                  {searchQuery ? `Search Results (${filteredProfiles.length})` : 'All Users'}
+                </p>
+
+                {filteredProfiles.map((profile) => {
               const phone = profile.email ? emailToPhone(profile.email) : profile.id.slice(0, 8) + '…';
               const isEditing = editingId === profile.id;
               const isMe = profile.id === currentUserId;
@@ -369,10 +405,10 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
                 </motion.div>
               );
             })}
-            </div>
-          )
+              </div>
+            )}
+          </div>
         )}
-        
         {!loading && activeTab === 'transactions' && (
           transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 gap-2 text-zinc-600">
