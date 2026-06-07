@@ -164,7 +164,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
       if (result && result.success) {
         // Save to Supabase momo_transactions as pending
         if (supabase) {
-          await supabase.from('momo_transactions').insert({
+          const { error: dbErr } = await supabase.from('momo_transactions').insert({
             tx_id: txRef.toLowerCase(),
             momo_phone: phone,
             momo_name: name,
@@ -174,6 +174,16 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
             user_id: user?.id,
             status: 'pending'
           }).select();
+
+          if (dbErr) {
+            console.error('Failed to save transaction:', dbErr);
+            setStatus({
+              type: 'error',
+              message: 'Could not save your request. Please screenshot this and contact support: ' + dbErr.message,
+            });
+            setSubmitting(false);
+            return;
+          }
         }
 
         // Save in localStorage as backup
