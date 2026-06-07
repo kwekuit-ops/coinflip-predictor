@@ -61,6 +61,7 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
   }, []);
 
   const fetchTransactions = useCallback(async (silent = false) => {
+    // Only set loading if this is the primary/visible fetch
     if (!silent) setLoading(true);
     else setRefreshing(true);
     setError('');
@@ -81,14 +82,36 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
     }
   }, []);
 
-  useEffect(() => { 
-    if (activeTab === 'users') fetchProfiles(); 
-    else fetchTransactions();
-  }, [activeTab, fetchProfiles, fetchTransactions]);
+  // On mount: always fetch both so the badge shows pending count immediately
+  useEffect(() => {
+    fetchProfiles();
+    // Fetch transactions silently so it doesn't block the users tab UI
+    supabase
+      .from('momo_transactions')
+      .select('*')
+      .eq('status', 'pending')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => setTransactions(data || []));
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // When switching to transactions tab, do a full refresh
+  useEffect(() => {
+    if (activeTab === 'transactions') fetchTransactions(true);
+  }, [activeTab, fetchTransactions]);
 
   const handleRefresh = () => {
-    if (activeTab === 'users') fetchProfiles(true);
-    else fetchTransactions(true);
+    if (activeTab === 'users') {
+      fetchProfiles(true);
+      // Also silently refresh transaction count for the badge
+      supabase
+        .from('momo_transactions')
+        .select('*')
+        .eq('status', 'pending')
+        .order('created_at', { ascending: false })
+        .then(({ data }) => setTransactions(data || []));
+    } else {
+      fetchTransactions(true);
+    }
   };
 
   const totalTokens = profiles.reduce((sum, p) => sum + (p.credits || 0), 0);
@@ -222,8 +245,10 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
           }`}
         >
           Transactions
-          {transactions.length > 0 && activeTab === 'users' && (
-            <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-[#08080a]" />
+          {transactions.length > 0 && (
+            <span className="inline-flex items-center justify-center ml-1.5 min-w-[16px] h-4 px-1 rounded-full bg-red-500 text-white text-[9px] font-black">
+              {transactions.length}
+            </span>
           )}
         </button>
       </div>
