@@ -3,12 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Zap, Loader2, CheckCircle2, AlertCircle,
   Copy, Check, Phone, Hash, ChevronLeft, ChevronRight,
-  Smartphone
+  Smartphone, User
 } from 'lucide-react';
 import { CREDIT_PACKAGES } from '../config/packages';
 import { supabase } from '../config/supabase';
 
-const MOMO_NUMBER = '0542217528';
+const MOMO_NUMBER = '0204104033';
 const MOMO_NAME = 'Evans';
 const MOMO_STORAGE_KEY = 'predictor_momo_transactions';
 
@@ -81,6 +81,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
   const [step, setStep] = useState('packages'); // 'packages' | 'pay' | 'done'
   const [selectedPkg, setSelectedPkg] = useState(null);
   const [momoPhone, setMomoPhone] = useState('');
+  const [momoName, setMomoName] = useState('');
   const [txId, setTxId] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState({ type: '', message: '' });
@@ -89,6 +90,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
     setStep('packages');
     setSelectedPkg(null);
     setMomoPhone('');
+    setMomoName('');
     setTxId('');
     setSubmitting(false);
     setStatus({ type: '', message: '' });
@@ -114,10 +116,15 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const phone = momoPhone.trim().replace(/\s+/g, '');
+    const name = momoName.trim();
     const txRef = txId.trim().replace(/\s+/g, '');
 
     if (!phone || phone.length < 10) {
       setStatus({ type: 'error', message: 'Enter a valid MoMo phone number (10 digits).' });
+      return;
+    }
+    if (!name) {
+      setStatus({ type: 'error', message: 'Enter your MoMo name.' });
       return;
     }
     if (!txRef || !/^\d+$/.test(txRef)) {
@@ -160,6 +167,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
           await supabase.from('momo_transactions').insert({
             tx_id: txRef.toLowerCase(),
             momo_phone: phone,
+            momo_name: name,
             amount_ghs: selectedPkg.price,
             tokens: selectedPkg.amount,
             package_label: selectedPkg.label,
@@ -249,7 +257,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                 </div>
 
                 <p className="shrink-0 px-4 py-3 text-[10px] text-center text-zinc-600 border-t border-white/5">
-                  🔒 Pay via MTN MoMo · Tokens credited instantly
+                  🔒 Pay via Telecel MoMo · Tokens credited instantly
                 </p>
               </>
             )}
@@ -296,7 +304,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                     </div>
 
                     <p className="text-xs text-zinc-400 leading-relaxed">
-                      Send exactly <span className="text-white font-bold">₵{selectedPkg.price}</span> to this MTN MoMo number:
+                      Send exactly <span className="text-white font-bold">₵{selectedPkg.price}</span> to this Telecel MoMo number:
                     </p>
 
                     {/* MoMo number display */}
@@ -342,6 +350,25 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                             className={`${inputClass} pl-9`}
                             disabled={submitting}
                             maxLength={15}
+                          />
+                        </div>
+                      </div>
+
+                      {/* MoMo Name */}
+                      <div>
+                        <label className="text-[10px] font-semibold text-zinc-500 mb-1.5 block uppercase tracking-wider">
+                          Your MoMo Name
+                        </label>
+                        <div className="relative">
+                          <User size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-600 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={momoName}
+                            onChange={(e) => setMomoName(e.target.value)}
+                            placeholder="e.g. John Doe"
+                            className={`${inputClass} pl-9`}
+                            disabled={submitting}
+                            maxLength={50}
                           />
                         </div>
                       </div>
