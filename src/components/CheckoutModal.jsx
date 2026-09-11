@@ -8,8 +8,8 @@ import {
 import { CREDIT_PACKAGES } from '../config/packages';
 import { supabase } from '../config/supabase';
 
-const MOMO_NUMBER = '0204104033';
-const MOMO_NAME = 'Evans';
+const MOMO_NUMBER = '0547270972';
+const MOMO_NAME = 'Emmanuella Offeibea';
 const MOMO_STORAGE_KEY = 'predictor_momo_transactions';
 
 // ── Copy to clipboard helper ──────────────────────────────────
@@ -267,7 +267,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                 </div>
 
                 <p className="shrink-0 px-4 py-3 text-[10px] text-center text-zinc-600 border-t border-white/5">
-                  🔒 Pay via Telecel MoMo · Tokens credited instantly
+                  🔒 Pay via MTN Mobile Money · Tokens credited instantly
                 </p>
               </>
             )}
@@ -314,7 +314,7 @@ const CheckoutModal = ({ isOpen, onClose, onPurchaseSubmit, user }) => {
                     </div>
 
                     <p className="text-xs text-zinc-400 leading-relaxed">
-                      Send exactly <span className="text-white font-bold">₵{selectedPkg.price}</span> to this Telecel MoMo number:
+                      Send exactly <span className="text-white font-bold">₵{selectedPkg.price}</span> to this MTN Mobile Money number:
                     </p>
 
                     {/* MoMo number display */}
