@@ -167,9 +167,10 @@ const App = () => {
       console.error('Local account parse error:', e);
     }
 
+    // Fetch essential profile data first (will not fail if new columns aren't in DB yet)
     const { data, error } = await supabase
       .from('profiles')
-      .select('credits, is_admin, email, connected_platform, connected_account_id')
+      .select('credits, is_admin, email')
       .eq('id', u.id)
       .single();
 
@@ -188,13 +189,25 @@ const App = () => {
     } else if (data) {
       setCredits(data.credits);
       setIsAdmin(data.is_admin || false);
-      if (data.connected_platform && data.connected_account_id) {
-        setConnectedAccount({
-          platform: data.connected_platform,
-          accountId: data.connected_account_id,
-        });
-      } else if (localAcc) {
-        setConnectedAccount(localAcc);
+
+      // Attempt to load cloud connected account if columns exist in database schema
+      try {
+        const { data: accData, error: accErr } = await supabase
+          .from('profiles')
+          .select('connected_platform, connected_account_id')
+          .eq('id', u.id)
+          .single();
+
+        if (!accErr && accData?.connected_platform && accData?.connected_account_id) {
+          setConnectedAccount({
+            platform: accData.connected_platform,
+            accountId: accData.connected_account_id,
+          });
+        } else if (localAcc) {
+          setConnectedAccount(localAcc);
+        }
+      } catch (e) {
+        if (localAcc) setConnectedAccount(localAcc);
       }
     } else if (error) {
       console.error('Fetch profile error:', error);
