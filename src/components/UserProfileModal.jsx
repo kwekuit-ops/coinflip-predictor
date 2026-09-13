@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, User, LogOut, Clock, CheckCircle2, XCircle, Coins, Loader2, ChevronLeft, KeyRound } from 'lucide-react';
+import { X, User, LogOut, Clock, CheckCircle2, XCircle, Coins, Loader2, ChevronLeft, KeyRound, Link2, ShieldCheck, AlertCircle } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { emailToPhone } from './AuthModal';
 
-const UserProfileModal = ({ isOpen, onClose, user, credits, onSignOut }) => {
+const UserProfileModal = ({ isOpen, onClose, user, credits, connectedAccount, onSignOut }) => {
   const [transactions, setTransactions] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -129,6 +129,35 @@ const UserProfileModal = ({ isOpen, onClose, user, credits, onSignOut }) => {
                     <p className="text-xl font-display font-bold text-white leading-tight">{credits} <span className="text-sm font-semibold text-blue-400">Tokens</span></p>
                   </div>
                 </div>
+              </div>
+
+              {/* Connected Game Account */}
+              <div className="space-y-2">
+                <h4 className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider pl-1">Connected Platform Account</h4>
+                {connectedAccount ? (
+                  <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-3.5 flex items-center justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+                        <Link2 size={18} />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-sm font-bold text-white truncate">{connectedAccount.platform}</p>
+                          <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 uppercase shrink-0">Verified</span>
+                        </div>
+                        <p className="text-xs text-zinc-400 font-mono truncate">ID: {connectedAccount.accountId}</p>
+                      </div>
+                    </div>
+                    <span className="text-[10px] text-emerald-400 font-semibold flex items-center gap-1 shrink-0 pl-2">
+                      <CheckCircle2 size={13} /> Linked
+                    </span>
+                  </div>
+                ) : (
+                  <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-3.5 flex items-center gap-3 text-amber-300 text-xs">
+                    <AlertCircle size={18} className="shrink-0 text-amber-400" />
+                    <span>No platform account linked yet. Connect your account in the predictor panel to enable predictions.</span>
+                  </div>
+                )}
               </div>
 
               {/* Transactions List */}

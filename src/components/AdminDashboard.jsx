@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, Users, Zap, RefreshCw, Shield, ShieldOff,
   Edit3, Check, ChevronLeft, AlertCircle, Loader2,
-  TrendingUp, Coins, CheckCircle2, Search
+  TrendingUp, Coins, CheckCircle2, Search, Link2
 } from 'lucide-react';
 import { supabase } from '../config/supabase';
 import { emailToPhone } from './AuthModal';
@@ -190,7 +190,9 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
     if (!searchQuery.trim()) return true;
     const q = searchQuery.toLowerCase().trim();
     const phone = p.email ? emailToPhone(p.email).toLowerCase() : p.id.toLowerCase();
-    return phone.includes(q);
+    const platform = (p.connected_platform || '').toLowerCase();
+    const accId = (p.connected_account_id || '').toLowerCase();
+    return phone.includes(q) || platform.includes(q) || accId.includes(q);
   });
 
   return (
@@ -351,6 +353,12 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
                       <p className="text-[10px] text-zinc-600 mt-0.5">
                         Last active: {formatDate(profile.updated_at)}
                       </p>
+                      {(profile.connected_platform || profile.connected_account_id) && (
+                        <div className="flex items-center gap-1.5 mt-1 text-[10px] text-emerald-400 font-mono">
+                          <Link2 size={11} className="shrink-0" />
+                          <span>{profile.connected_platform || 'Linked'}: #{profile.connected_account_id}</span>
+                        </div>
+                      )}
                     </div>
 
                     {/* Toggle admin */}

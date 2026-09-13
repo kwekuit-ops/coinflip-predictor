@@ -1,18 +1,61 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Brain, Sparkles } from 'lucide-react';
+import { Brain, Sparkles, Link2, ShieldCheck, CheckCircle2, AlertCircle, Loader2, Lock } from 'lucide-react';
 import { playScanSound } from '../utils/sounds';
 
 const platforms = ['1win.com', 'SportyBet', 'Betwinner'];
 
-const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
+const PredictorPanel = ({
+  history,
+  credits,
+  onStartPredict,
+  onPredict,
+  connectedAccount,
+  onConnectAccount,
+}) => {
   const [status, setStatus] = useState('Idle');
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
   const [isPredicting, setIsPredicting] = useState(false);
-  const [platform, setPlatform] = useState(platforms[0]);
+  const [platform, setPlatform] = useState(connectedAccount?.platform || platforms[0]);
+
+  // Account connection form state
+  const [selectedPlatform, setSelectedPlatform] = useState(platforms[0]);
+  const [accountIdInput, setAccountIdInput] = useState('');
+  const [connecting, setConnecting] = useState(false);
+  const [connectError, setConnectError] = useState('');
+
+  const handleConnectSubmit = async (e) => {
+    e.preventDefault();
+    const cleanId = accountIdInput.trim();
+    if (!cleanId) {
+      setConnectError('Please enter your account ID or UID.');
+      return;
+    }
+    if (cleanId.length < 3) {
+      setConnectError('Account ID must be at least 3 characters.');
+      return;
+    }
+
+    setConnectError('');
+    setConnecting(true);
+    try {
+      if (onConnectAccount) {
+        await onConnectAccount(selectedPlatform, cleanId);
+      }
+    } catch (err) {
+      setConnectError(err.message || 'Failed to link account.');
+    } finally {
+      setConnecting(false);
+    }
+  };
 
   const handlePredict = async () => {
+    if (!connectedAccount) {
+      setConnectError('You must connect your account before predicting.');
+      return;
+    }
+
     if (isPredicting || credits < 1) return;
 
     if (onStartPredict) {
@@ -55,8 +98,9 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
   const isHead = prediction === 'HEAD';
 
   return (
-    <div className="glass-card rounded-2xl p-3.5 sm:p-5">
-      <div className="flex items-start justify-between gap-2 sm:gap-3 mb-3 sm:mb-4">
+    <div className="glass-card rounded-2xl p-3.5 sm:p-5 space-y-4">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           <div className="shrink-0 w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
             <Brain className="w-4 h-4 sm:w-5 sm:h-5 text-blue-400" />
@@ -90,31 +134,142 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
         </AnimatePresence>
       </div>
 
-      {/* Platform Selector */}
-      <div className="mb-3 sm:mb-4">
-        <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5 relative">
-          {platforms.map((p) => (
-            <button
-              key={p}
-              onClick={() => setPlatform(p)}
-              disabled={isPredicting}
-              className={`flex-1 relative z-10 text-[10px] sm:text-[11px] font-bold py-2 rounded-lg transition-colors ${
-                platform === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
-              } ${isPredicting ? 'cursor-not-allowed opacity-50' : ''}`}
-            >
-              {platform === p && (
-                <motion.div
-                  layoutId="active-platform"
-                  className="absolute inset-0 bg-blue-500/20 rounded-lg -z-10 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
-                  transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
-                />
-              )}
-              {p}
-            </button>
-          ))}
-        </div>
-      </div>
+      {/* ── SECTION: One-time Account Connection ────────────────────── */}
+      {!connectedAccount ? (
+        <motion.div
+          initial={{ opacity: 0, y: 6 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-xl border border-blue-500/30 bg-gradient-to-b from-blue-950/40 via-blue-900/20 to-black/40 p-4 space-y-3 shadow-lg"
+        >
+          <div className="flex items-center gap-2.5">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+              <Link2 size={16} />
+            </div>
+            <div>
+              <h3 className="text-xs font-bold text-white tracking-tight">Connect Game Account</h3>
+              <p className="text-[10px] text-zinc-400">One-time setup required before predicting</p>
+            </div>
+          </div>
 
+          <form onSubmit={handleConnectSubmit} className="space-y-2.5 pt-1">
+            {/* Platform choices */}
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
+                Select Platform
+              </label>
+              <div className="grid grid-cols-3 gap-1.5">
+                {platforms.map((p) => (
+                  <button
+                    key={p}
+                    type="button"
+                    onClick={() => setSelectedPlatform(p)}
+                    className={`py-1.5 text-[10px] sm:text-xs font-bold rounded-lg border transition-all ${
+                      selectedPlatform === p
+                        ? 'bg-blue-500/25 border-blue-400/50 text-white shadow-[0_0_12px_rgba(59,130,246,0.25)]'
+                        : 'bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Account ID / UID Input */}
+            <div>
+              <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
+                Gaming ID / Account ID
+              </label>
+              <input
+                type="text"
+                value={accountIdInput}
+                onChange={(e) => {
+                  setAccountIdInput(e.target.value);
+                  if (connectError) setConnectError('');
+                }}
+                placeholder={`Enter your ${selectedPlatform} Gaming ID (e.g. 8492014)`}
+                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
+              />
+            </div>
+
+            {connectError && (
+              <div className="flex items-center gap-1.5 text-red-400 text-[11px]">
+                <AlertCircle size={13} className="shrink-0" />
+                <span>{connectError}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={connecting}
+              className="w-full min-h-[44px] py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-bold border border-blue-400/30 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {connecting ? (
+                <>
+                  <Loader2 size={14} className="animate-spin" />
+                  <span>Connecting Account…</span>
+                </>
+              ) : (
+                <>
+                  <ShieldCheck size={15} />
+                  <span>Connect Account</span>
+                </>
+              )}
+            </button>
+          </form>
+        </motion.div>
+      ) : (
+        /* Connected Status Badge */
+        <div className="flex items-center justify-between p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20">
+          <div className="flex items-center gap-2.5 min-w-0">
+            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+              <CheckCircle2 size={16} />
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-xs font-bold text-white truncate">{connectedAccount.platform}</span>
+                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 uppercase tracking-wide shrink-0">
+                  Linked
+                </span>
+              </div>
+              <p className="text-[11px] text-zinc-400 font-mono truncate">ID: {connectedAccount.accountId}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 pl-2">
+            <ShieldCheck size={14} />
+            <span>Verified</span>
+          </div>
+        </div>
+      )}
+
+      {/* Platform Selector (for prediction calibration once connected) */}
+      {connectedAccount && (
+        <div>
+          <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5 relative">
+            {platforms.map((p) => (
+              <button
+                key={p}
+                onClick={() => setPlatform(p)}
+                disabled={isPredicting}
+                className={`flex-1 relative z-10 text-[10px] sm:text-[11px] font-bold py-2 rounded-lg transition-colors ${
+                  platform === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
+                } ${isPredicting ? 'cursor-not-allowed opacity-50' : ''}`}
+              >
+                {platform === p && (
+                  <motion.div
+                    layoutId="active-platform"
+                    className="absolute inset-0 bg-blue-500/20 rounded-lg -z-10 border border-blue-500/30 shadow-[0_0_12px_rgba(59,130,246,0.15)]"
+                    transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
+                  />
+                )}
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Prediction Output Display */}
       <AnimatePresence mode="wait">
         {prediction && !isPredicting ? (
           <motion.div
@@ -122,7 +277,7 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            className={`mb-3 sm:mb-4 rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 text-center ${
+            className={`rounded-xl border px-3 py-2.5 sm:px-4 sm:py-3 text-center ${
               isHead
                 ? 'bg-amber-500/10 border-amber-500/25'
                 : 'bg-cyan-500/10 border-cyan-500/25'
@@ -143,16 +298,19 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="mb-3 sm:mb-4 rounded-xl border border-dashed border-white/8 bg-white/[0.02] px-3 py-4 sm:px-4 sm:py-5 text-center"
+            className="rounded-xl border border-dashed border-white/8 bg-white/[0.02] px-3 py-4 sm:px-4 sm:py-5 text-center"
           >
             <Sparkles className="w-4 h-4 text-zinc-600 mx-auto mb-1.5 sm:mb-2" />
-            <p className="text-xs text-zinc-500">Tap below to get your signal</p>
+            <p className="text-xs text-zinc-500">
+              {connectedAccount ? 'Tap below to get your signal' : 'Connect account above to unlock signals'}
+            </p>
           </motion.div>
         )}
       </AnimatePresence>
 
+      {/* History pill list */}
       {history.length > 0 && (
-        <div className="mb-3 sm:mb-4">
+        <div>
           <p className="text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1.5 sm:mb-2">Recent</p>
           <div className="flex flex-wrap gap-1.5">
             {history.slice(0, 8).map((side, i) => (
@@ -171,19 +329,31 @@ const PredictorPanel = ({ history, credits, onStartPredict, onPredict }) => {
         </div>
       )}
 
+      {/* Prediction Trigger Button */}
       <div>
         {!isPredicting ? (
           <button
             type="button"
-            disabled={credits < 1}
+            disabled={!connectedAccount || credits < 1}
             onClick={handlePredict}
             className={`w-full min-h-[48px] font-display font-bold py-3.5 sm:py-3 rounded-xl text-[14px] sm:text-sm tracking-wide transition-all active:scale-[0.98] ${
-              credits < 1
+              !connectedAccount
+                ? 'bg-zinc-800/80 text-zinc-500 border border-white/5 cursor-not-allowed flex items-center justify-center gap-2'
+                : credits < 1
                 ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white border border-blue-400/30 shadow-[0_8px_24px_var(--accent-glow)]'
             }`}
           >
-            {credits < 1 ? 'Need tokens (Tap +)' : 'Predict next round'}
+            {!connectedAccount ? (
+              <>
+                <Lock size={15} />
+                <span>Connect Account Above to Predict</span>
+              </>
+            ) : credits < 1 ? (
+              'Need tokens (Tap +)'
+            ) : (
+              'Predict next round'
+            )}
           </button>
         ) : (
           <div className="flex justify-center items-center gap-2 min-h-[48px] py-3 rounded-xl bg-white/[0.03] border border-white/5">
