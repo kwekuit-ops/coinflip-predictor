@@ -353,12 +353,21 @@ const AdminDashboard = ({ onClose, currentUserId }) => {
                       <p className="text-[10px] text-zinc-600 mt-0.5">
                         Last active: {formatDate(profile.updated_at)}
                       </p>
-                      {(profile.connected_platform || profile.connected_account_id) && (
+                      {profile.connected_accounts && typeof profile.connected_accounts === 'object' && Object.keys(profile.connected_accounts).length > 0 ? (
+                        <div className="flex flex-wrap gap-1.5 mt-1 text-[10px] text-emerald-400 font-mono">
+                          {Object.entries(profile.connected_accounts).map(([pName, pId]) => (
+                            <span key={pName} className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
+                              <Link2 size={10} className="shrink-0" />
+                              <strong className="text-white font-sans">{pName}:</strong> #{pId}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (profile.connected_platform || profile.connected_account_id) ? (
                         <div className="flex items-center gap-1.5 mt-1 text-[10px] text-emerald-400 font-mono">
                           <Link2 size={11} className="shrink-0" />
                           <span>{profile.connected_platform || 'Linked'}: #{profile.connected_account_id}</span>
                         </div>
-                      )}
+                      ) : null}
                     </div>
 
                     {/* Toggle admin */}

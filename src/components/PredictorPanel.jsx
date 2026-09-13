@@ -10,30 +10,32 @@ const PredictorPanel = ({
   credits,
   onStartPredict,
   onPredict,
-  connectedAccount,
+  connectedAccounts = {},
   onConnectAccount,
 }) => {
   const [status, setStatus] = useState('Idle');
   const [prediction, setPrediction] = useState(null);
   const [confidence, setConfidence] = useState(0);
   const [isPredicting, setIsPredicting] = useState(false);
-  const [platform, setPlatform] = useState(connectedAccount?.platform || platforms[0]);
+  const [platform, setPlatform] = useState(platforms[0]);
 
-  // Account connection form state
-  const [selectedPlatform, setSelectedPlatform] = useState(platforms[0]);
+  // Form input state
   const [accountIdInput, setAccountIdInput] = useState('');
   const [connecting, setConnecting] = useState(false);
   const [connectError, setConnectError] = useState('');
+
+  // Active platform connection check
+  const activeConnectedId = connectedAccounts[platform];
 
   const handleConnectSubmit = async (e) => {
     e.preventDefault();
     const cleanId = accountIdInput.trim();
     if (!cleanId) {
-      setConnectError('Please enter your account ID or UID.');
+      setConnectError(`Please enter your ${platform} Gaming ID.`);
       return;
     }
     if (cleanId.length < 3) {
-      setConnectError('Account ID must be at least 3 characters.');
+      setConnectError('Gaming ID must be at least 3 characters.');
       return;
     }
 
@@ -41,7 +43,8 @@ const PredictorPanel = ({
     setConnecting(true);
     try {
       if (onConnectAccount) {
-        await onConnectAccount(selectedPlatform, cleanId);
+        await onConnectAccount(platform, cleanId);
+        setAccountIdInput('');
       }
     } catch (err) {
       setConnectError(err.message || 'Failed to link account.');
@@ -51,8 +54,8 @@ const PredictorPanel = ({
   };
 
   const handlePredict = async () => {
-    if (!connectedAccount) {
-      setConnectError('You must connect your account before predicting.');
+    if (!activeConnectedId) {
+      setConnectError(`Please connect your ${platform} account before predicting.`);
       return;
     }
 
@@ -134,124 +137,21 @@ const PredictorPanel = ({
         </AnimatePresence>
       </div>
 
-      {/* ── SECTION: One-time Account Connection ────────────────────── */}
-      {!connectedAccount ? (
-        <motion.div
-          initial={{ opacity: 0, y: 6 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="rounded-xl border border-blue-500/30 bg-gradient-to-b from-blue-950/40 via-blue-900/20 to-black/40 p-4 space-y-3 shadow-lg"
-        >
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
-              <Link2 size={16} />
-            </div>
-            <div>
-              <h3 className="text-xs font-bold text-white tracking-tight">Connect Game Account</h3>
-              <p className="text-[10px] text-zinc-400">One-time setup required before predicting</p>
-            </div>
-          </div>
-
-          <form onSubmit={handleConnectSubmit} className="space-y-2.5 pt-1">
-            {/* Platform choices */}
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
-                Select Platform
-              </label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {platforms.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setSelectedPlatform(p)}
-                    className={`py-1.5 text-[10px] sm:text-xs font-bold rounded-lg border transition-all ${
-                      selectedPlatform === p
-                        ? 'bg-blue-500/25 border-blue-400/50 text-white shadow-[0_0_12px_rgba(59,130,246,0.25)]'
-                        : 'bg-white/5 border-white/10 text-zinc-400 hover:text-zinc-200'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Account ID / UID Input */}
-            <div>
-              <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
-                Gaming ID / Account ID
-              </label>
-              <input
-                type="text"
-                value={accountIdInput}
-                onChange={(e) => {
-                  setAccountIdInput(e.target.value);
-                  if (connectError) setConnectError('');
-                }}
-                placeholder={`Enter your ${selectedPlatform} Gaming ID (e.g. 8492014)`}
-                className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
-              />
-            </div>
-
-            {connectError && (
-              <div className="flex items-center gap-1.5 text-red-400 text-[11px]">
-                <AlertCircle size={13} className="shrink-0" />
-                <span>{connectError}</span>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={connecting}
-              className="w-full min-h-[44px] py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-bold border border-blue-400/30 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {connecting ? (
-                <>
-                  <Loader2 size={14} className="animate-spin" />
-                  <span>Connecting Account…</span>
-                </>
-              ) : (
-                <>
-                  <ShieldCheck size={15} />
-                  <span>Connect Account</span>
-                </>
-              )}
-            </button>
-          </form>
-        </motion.div>
-      ) : (
-        /* Connected Status Badge */
-        <div className="flex items-center justify-between p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20">
-          <div className="flex items-center gap-2.5 min-w-0">
-            <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
-              <CheckCircle2 size={16} />
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <span className="text-xs font-bold text-white truncate">{connectedAccount.platform}</span>
-                <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 uppercase tracking-wide shrink-0">
-                  Linked
-                </span>
-              </div>
-              <p className="text-[11px] text-zinc-400 font-mono truncate">ID: {connectedAccount.accountId}</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 pl-2">
-            <ShieldCheck size={14} />
-            <span>Verified</span>
-          </div>
-        </div>
-      )}
-
-      {/* Platform Selector (for prediction calibration once connected) */}
-      {connectedAccount && (
-        <div>
-          <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5 relative">
-            {platforms.map((p) => (
+      {/* Platform Selector Tabs */}
+      <div>
+        <div className="flex bg-white/[0.02] p-1 rounded-xl border border-white/5 relative">
+          {platforms.map((p) => {
+            const isPlatformLinked = Boolean(connectedAccounts[p]);
+            return (
               <button
                 key={p}
-                onClick={() => setPlatform(p)}
+                onClick={() => {
+                  setPlatform(p);
+                  setConnectError('');
+                  setAccountIdInput('');
+                }}
                 disabled={isPredicting}
-                className={`flex-1 relative z-10 text-[10px] sm:text-[11px] font-bold py-2 rounded-lg transition-colors ${
+                className={`flex-1 relative z-10 text-[10px] sm:text-[11px] font-bold py-2 rounded-lg transition-colors flex items-center justify-center gap-1 ${
                   platform === p ? 'text-white' : 'text-zinc-500 hover:text-zinc-300'
                 } ${isPredicting ? 'cursor-not-allowed opacity-50' : ''}`}
               >
@@ -262,12 +162,109 @@ const PredictorPanel = ({
                     transition={{ type: 'spring', bounce: 0.2, duration: 0.4 }}
                   />
                 )}
-                {p}
+                <span>{p}</span>
+                {isPlatformLinked && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" title="Linked" />
+                )}
               </button>
-            ))}
-          </div>
+            );
+          })}
         </div>
-      )}
+      </div>
+
+      {/* ── SECTION: Per-Platform Account Connection ────────────────── */}
+      <AnimatePresence mode="wait">
+        {!activeConnectedId ? (
+          <motion.div
+            key={`form-${platform}`}
+            initial={{ opacity: 0, y: 6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            className="rounded-xl border border-blue-500/30 bg-gradient-to-b from-blue-950/40 via-blue-900/20 to-black/40 p-4 space-y-3 shadow-lg"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400 shrink-0">
+                <Link2 size={16} />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-white tracking-tight">Connect {platform} Account</h3>
+                <p className="text-[10px] text-zinc-400">One-time setup required for {platform}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleConnectSubmit} className="space-y-2.5 pt-1">
+              <div>
+                <label className="block text-[10px] font-semibold text-zinc-400 uppercase tracking-wider mb-1">
+                  {platform} Gaming ID / Phone
+                </label>
+                <input
+                  type="text"
+                  value={accountIdInput}
+                  onChange={(e) => {
+                    setAccountIdInput(e.target.value);
+                    if (connectError) setConnectError('');
+                  }}
+                  placeholder={`Enter your ${platform} Gaming ID or Number`}
+                  className="w-full bg-black/50 border border-white/10 rounded-xl px-3 py-2.5 text-xs text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/50"
+                />
+              </div>
+
+              {connectError && (
+                <div className="flex items-center gap-1.5 text-red-400 text-[11px]">
+                  <AlertCircle size={13} className="shrink-0" />
+                  <span>{connectError}</span>
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={connecting}
+                className="w-full min-h-[44px] py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-500 text-white text-xs font-bold border border-blue-400/30 shadow-[0_4px_20px_rgba(59,130,246,0.3)] hover:brightness-110 active:scale-[0.98] transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {connecting ? (
+                  <>
+                    <Loader2 size={14} className="animate-spin" />
+                    <span>Connecting {platform}…</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck size={15} />
+                    <span>Connect {platform} Account</span>
+                  </>
+                )}
+              </button>
+            </form>
+          </motion.div>
+        ) : (
+          /* Connected Status Badge for Active Platform */
+          <motion.div
+            key={`status-${platform}`}
+            initial={{ opacity: 0, scale: 0.98 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            className="flex items-center justify-between p-3 rounded-xl border bg-emerald-500/10 border-emerald-500/20"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+                <CheckCircle2 size={16} />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-xs font-bold text-white truncate">{platform}</span>
+                  <span className="text-[9px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 uppercase tracking-wide shrink-0">
+                    LINKED
+                  </span>
+                </div>
+                <p className="text-[11px] text-zinc-400 font-mono truncate">ID: {activeConnectedId}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 text-[10px] font-bold text-emerald-400 shrink-0 pl-2">
+              <ShieldCheck size={14} />
+              <span>Verified</span>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Prediction Output Display */}
       <AnimatePresence mode="wait">
@@ -283,7 +280,7 @@ const PredictorPanel = ({
                 : 'bg-cyan-500/10 border-cyan-500/25'
             }`}
           >
-            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-0.5 sm:mb-1">Next round</p>
+            <p className="text-[10px] uppercase tracking-[0.2em] text-zinc-500 mb-0.5 sm:mb-1">Next round ({platform})</p>
             <p
               className={`font-display text-2xl sm:text-3xl font-black tracking-tight ${
                 isHead ? 'text-amber-400' : 'text-cyan-400'
@@ -302,7 +299,9 @@ const PredictorPanel = ({
           >
             <Sparkles className="w-4 h-4 text-zinc-600 mx-auto mb-1.5 sm:mb-2" />
             <p className="text-xs text-zinc-500">
-              {connectedAccount ? 'Tap below to get your signal' : 'Connect account above to unlock signals'}
+              {activeConnectedId
+                ? `Tap below to get your ${platform} signal`
+                : `Connect your ${platform} account above to unlock signals`}
             </p>
           </motion.div>
         )}
@@ -334,25 +333,25 @@ const PredictorPanel = ({
         {!isPredicting ? (
           <button
             type="button"
-            disabled={!connectedAccount || credits < 1}
+            disabled={!activeConnectedId || credits < 1}
             onClick={handlePredict}
             className={`w-full min-h-[48px] font-display font-bold py-3.5 sm:py-3 rounded-xl text-[14px] sm:text-sm tracking-wide transition-all active:scale-[0.98] ${
-              !connectedAccount
+              !activeConnectedId
                 ? 'bg-zinc-800/80 text-zinc-500 border border-white/5 cursor-not-allowed flex items-center justify-center gap-2'
                 : credits < 1
                 ? 'bg-red-500/10 text-red-400 border border-red-500/20 cursor-not-allowed'
                 : 'bg-gradient-to-r from-blue-600 to-blue-500 text-white border border-blue-400/30 shadow-[0_8px_24px_var(--accent-glow)]'
             }`}
           >
-            {!connectedAccount ? (
+            {!activeConnectedId ? (
               <>
                 <Lock size={15} />
-                <span>Connect Account Above to Predict</span>
+                <span>Connect {platform} Account Above</span>
               </>
             ) : credits < 1 ? (
               'Need tokens (Tap +)'
             ) : (
-              'Predict next round'
+              `Predict ${platform} next round`
             )}
           </button>
         ) : (

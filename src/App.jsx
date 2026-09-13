@@ -100,8 +100,8 @@ const App = () => {
   const [showAdmin, setShowAdmin] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
 
-  // Connected account state (one-time setup per user)
-  const [connectedAccount, setConnectedAccount] = useState(null);
+  // Connected per-platform accounts map (e.g. { '1win.com': '8492014', 'SportyBet': '0241234567' })
+  const [connectedAccounts, setConnectedAccounts] = useState({});
 
   // Credits
   const [credits, setCredits] = useState(0);
@@ -146,7 +146,7 @@ const App = () => {
       if (u) syncCloudCredits(u);
       else {
         setCredits(0);
-        setConnectedAccount(null);
+        setConnectedAccounts({});
         setAuthLoading(false);
       }
     });
@@ -154,20 +154,29 @@ const App = () => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // ── Sync credits and connected account from Supabase ──────────
+  // ── Sync credits and per-platform connected accounts from Supabase ──────────
   const syncCloudCredits = async (u) => {
     if (!supabase) return;
 
-    // Check local storage fallback for connected account
-    let localAcc = null;
+    // Check local storage fallback for per-platform connected accounts
+    let localAccs = {};
     try {
-      const stored = localStorage.getItem(`predictor_account_${u.id}`);
-      if (stored) localAcc = JSON.parse(stored);
+      const stored = localStorage.getItem(`predictor_accounts_${u.id}`);
+      if (stored) {
+        localAccs = JSON.parse(stored);
+      } else {
+        const oldSingle = localStorage.getItem(`predictor_account_${u.id}`);
+        if (oldSingle) {
+          const parsed = JSON.parse(oldSingle);
+          if (parsed.platform && parsed.accountId) {
+            localAccs = { [parsed.platform]: parsed.accountId };
+          }
+        }
+      }
     } catch (e) {
-      console.error('Local account parse error:', e);
+      console.error('Local accounts parse error:', e);
     }
 
-    // Fetch essential profile data first (will not fail if new columns aren't in DB yet)
     const { data, error } = await supabase
       .from('profiles')
       .select('credits, is_admin, email')
@@ -175,7 +184,6 @@ const App = () => {
       .single();
 
     if (error && error.code === 'PGRST116') {
-      // New user — create profile with 0 tokens (must purchase)
       const { data: inserted } = await supabase
         .from('profiles')
         .insert({ id: u.id, credits: 0, email: u.email })
@@ -185,34 +193,36 @@ const App = () => {
         setCredits(inserted.credits);
         setIsAdmin(inserted.is_admin || false);
       }
-      if (localAcc) setConnectedAccount(localAcc);
+      setConnectedAccounts(localAccs);
     } else if (data) {
       setCredits(data.credits);
       setIsAdmin(data.is_admin || false);
 
-      // Attempt to load cloud connected account if columns exist in database schema
       try {
         const { data: accData, error: accErr } = await supabase
           .from('profiles')
-          .select('connected_platform, connected_account_id')
+          .select('connected_accounts, connected_platform, connected_account_id')
           .eq('id', u.id)
           .single();
 
-        if (!accErr && accData?.connected_platform && accData?.connected_account_id) {
-          setConnectedAccount({
-            platform: accData.connected_platform,
-            accountId: accData.connected_account_id,
-          });
-        } else if (localAcc) {
-          setConnectedAccount(localAcc);
+        if (!accErr && accData) {
+          let merged = { ...localAccs };
+          if (accData.connected_accounts && typeof accData.connected_accounts === 'object') {
+            merged = { ...merged, ...accData.connected_accounts };
+          } else if (accData.connected_platform && accData.connected_account_id) {
+            merged[accData.connected_platform] = accData.connected_account_id;
+          }
+          setConnectedAccounts(merged);
+        } else {
+          setConnectedAccounts(localAccs);
         }
       } catch (e) {
-        if (localAcc) setConnectedAccount(localAcc);
+        setConnectedAccounts(localAccs);
       }
     } else if (error) {
       console.error('Fetch profile error:', error);
       addToast(`Error loading profile: ${error.message}`, 'error', 6000);
-      if (localAcc) setConnectedAccount(localAcc);
+      setConnectedAccounts(localAccs);
     }
     setAuthLoading(false);
   };
@@ -226,36 +236,40 @@ const App = () => {
     if (error) console.error('Failed to sync credits:', error.message);
   }, []);
 
-  // ── Save connected account ────────────────────────────────────
+  // ── Save connected account for a specific platform ───────────
   const handleConnectAccount = useCallback(async (platform, accountId) => {
     if (!userRef.current) return false;
-    const accountObj = { platform, accountId, connectedAt: new Date().toISOString() };
-    
-    // Persist locally for instant & offline sync
-    try {
-      localStorage.setItem(`predictor_account_${userRef.current.id}`, JSON.stringify(accountObj));
-    } catch (e) {
-      console.error('LocalStorage save error:', e);
-    }
 
-    // Persist to Supabase profiles table
-    if (supabase) {
+    setConnectedAccounts((prev) => {
+      const updated = { ...prev, [platform]: accountId };
+
+      // Save locally
       try {
-        await supabase
+        localStorage.setItem(`predictor_accounts_${userRef.current.id}`, JSON.stringify(updated));
+      } catch (e) {
+        console.error('LocalStorage save error:', e);
+      }
+
+      // Save to Supabase
+      if (supabase) {
+        supabase
           .from('profiles')
           .update({
+            connected_accounts: updated,
             connected_platform: platform,
             connected_account_id: accountId,
             updated_at: new Date().toISOString(),
           })
-          .eq('id', userRef.current.id);
-      } catch (err) {
-        console.warn('Supabase update profile account error:', err.message);
+          .eq('id', userRef.current.id)
+          .then(({ error }) => {
+            if (error) console.warn('Supabase update profile account error:', error.message);
+          });
       }
-    }
 
-    setConnectedAccount(accountObj);
-    addToast(`Account linked successfully to ${platform}! (#${accountId})`, 'success', 4000);
+      return updated;
+    });
+
+    addToast(`${platform} account linked successfully! (#${accountId})`, 'success', 4000);
     return true;
   }, [addToast]);
 
@@ -451,7 +465,7 @@ const App = () => {
               credits={credits}
               onStartPredict={handleStartPredict}
               onPredict={handlePredictionTrigger}
-              connectedAccount={connectedAccount}
+              connectedAccounts={connectedAccounts}
               onConnectAccount={handleConnectAccount}
             />
 
@@ -469,9 +483,9 @@ const App = () => {
             {/* Synced account badge */}
             <div className="flex items-center gap-2 px-3 py-2 rounded-xl border bg-emerald-500/5 border-emerald-500/15 text-emerald-500 text-[10px] font-medium justify-between">
               <span className="truncate">☁️ Synced · {emailToPhone(user.email)}</span>
-              {connectedAccount && (
+              {Object.keys(connectedAccounts || {}).length > 0 && (
                 <span className="text-[9px] font-bold px-2 py-0.5 rounded-md bg-blue-500/20 text-blue-300 border border-blue-500/30 shrink-0">
-                  {connectedAccount.platform} (#{connectedAccount.accountId})
+                  {Object.keys(connectedAccounts).length} Platform{Object.keys(connectedAccounts).length > 1 ? 's' : ''} Linked
                 </span>
               )}
             </div>
@@ -503,7 +517,7 @@ const App = () => {
           onClose={() => setShowProfile(false)}
           user={user}
           credits={credits}
-          connectedAccount={connectedAccount}
+          connectedAccounts={connectedAccounts}
           onSignOut={handleSignOut}
         />
       </AnimatePresence>
